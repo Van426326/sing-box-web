@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>kt-proxy</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>kt-proxy</h1>
+          <p id="subtitle">sing-box 配置管理</p>
+        </div>
+        <div class="actions">
+          <button id="reloadBtn" type="button">重新加载</button>
+          <button id="syncDaedBtn" type="button">同步到 Daed</button>
+          <button id="saveBtn" type="button" class="primary">检查并保存</button>
+        </div>
+      </header>
+
+      <section id="alert" class="alert hidden"></section>
+
+      <nav class="tabs" aria-label="配置视图">
+        <button class="tab active" type="button" data-tab="overview">总览</button>
+        <button class="tab" type="button" data-tab="outbounds">Outbounds</button>
+        <button class="tab" type="button" data-tab="rules">Route Rules</button>
+        <button class="tab" type="button" data-tab="json">完整 JSON</button>
+      </nav>
+
+      <section id="overview" class="panel active"></section>
+      <section id="outbounds" class="panel"></section>
+      <section id="rules" class="panel"></section>
+      <section id="json" class="panel"></section>
+    </main>
+
+    <dialog id="editorDialog">
+      <form method="dialog" class="dialog">
+        <header>
+          <h2 id="dialogTitle">编辑</h2>
+          <button type="button" id="closeDialogBtn" class="icon-button" aria-label="关闭">×</button>
+        </header>
+        <div id="dialogBody"></div>
+        <footer>
+          <button type="button" id="cancelDialogBtn">取消</button>
+          <button type="button" id="confirmDialogBtn" class="primary">保存</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
