@@ -3,3 +3,4 @@ kt-proxy
 .env
 .env.*
 kt-proxy.json
+.cache/

@@ -10,6 +10,55 @@ It reads `/etc/sing-box/config.json`, displays editable `outbounds` and `route.r
 go build -o kt-proxy .
 ```
 
+## One-Click Deploy on Ubuntu
+
+Run this on the Ubuntu server:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Van426326/sing-box-web/main/scripts/install.sh | sudo bash
+```
+
+The installer builds the binary from the GitHub source, installs it to `/usr/local/bin/kt-proxy`, writes `/etc/kt-proxy/kt-proxy.env`, installs `/etc/systemd/system/kt-proxy.service`, and starts the `kt-proxy` service.
+
+During interactive install it asks for:
+
+- `KT_PROXY_ADDR`, default `:8090`
+- `SING_BOX_CONFIG_PATH`, default `/etc/sing-box/config.json`
+- `DAED_GRAPHQL_URL`, optional
+- `DAED_AUTHORIZATION`, optional and hidden while typing
+
+For non-interactive install, export the values first and preserve them through `sudo -E bash`:
+
+```bash
+export KT_PROXY_ADDR=":8090"
+export SING_BOX_CONFIG_PATH="/etc/sing-box/config.json"
+export DAED_GRAPHQL_URL="http://127.0.0.1:2023/graphql"
+export DAED_AUTHORIZATION="Bearer xxx"
+
+curl -fsSL https://raw.githubusercontent.com/Van426326/sing-box-web/main/scripts/install.sh | sudo -E bash
+```
+
+If `DAED_GRAPHQL_URL` or `DAED_AUTHORIZATION` is empty, the Daed sync button remains available but the page will show the missing configuration error returned by the API.
+
+Common service commands:
+
+```bash
+sudo systemctl status kt-proxy
+sudo systemctl restart kt-proxy
+sudo journalctl -u kt-proxy -f
+```
+
+To update, rerun the one-click install command. The script rebuilds the latest `main` branch and restarts the service.
+
+To uninstall:
+
+```bash
+sudo systemctl disable --now kt-proxy
+sudo rm -f /etc/systemd/system/kt-proxy.service /usr/local/bin/kt-proxy
+sudo rm -rf /etc/kt-proxy
+sudo systemctl daemon-reload
+```
+
 ## Run for local development
 
 Use the sample config as the write target so the real system config is not touched:
@@ -31,7 +80,7 @@ The default runtime values are:
 
 - `KT_PROXY_ADDR=:8090`
 - `SING_BOX_CONFIG_PATH=/etc/sing-box/config.json`
-- `SING_BOX_EXAMPLE_PATH=sing-box-config-example.json`
+- `SING_BOX_EXAMPLE_PATH=/etc/kt-proxy/sing-box-config-example.json`
 - `SING_BOX_BIN=sing-box`
 - `SYSTEMCTL_BIN=systemctl`
 
@@ -60,9 +109,10 @@ After=network.target
 
 [Service]
 Type=simple
+EnvironmentFile=/etc/kt-proxy/kt-proxy.env
 ExecStart=/usr/local/bin/kt-proxy
-Environment=KT_PROXY_ADDR=:8090
 Restart=on-failure
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
@@ -70,4 +120,4 @@ WantedBy=multi-user.target
 
 ## Security
 
-The first version has no login, no TLS, and no CSRF protection. Run it only in a trusted environment.
+The first version has no login, no TLS, and no CSRF protection. Run it only in a trusted network, or bind `KT_PROXY_ADDR` to a private address and put your own reverse proxy or access control in front of it.
