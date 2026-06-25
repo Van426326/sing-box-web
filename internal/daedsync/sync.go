@@ -192,7 +192,7 @@ type graphQLRequest struct {
 }
 
 type graphQLResponse struct {
-	Data   json.RawMessage   `json:"data"`
+	Data   json.RawMessage  `json:"data"`
 	Errors []map[string]any `json:"errors"`
 }
 
@@ -239,7 +239,7 @@ func (s *Service) updateRouting(ctx context.Context, id string, routing string) 
 
 func (s *Service) run(ctx context.Context) error {
 	var payload struct {
-		Run bool `json:"run"`
+		Run json.RawMessage `json:"run"`
 	}
 	return s.graphQL(ctx, graphQLRequest{
 		Query:         "mutation Run($dry: Boolean!) {\n  run(dry: $dry)\n}",

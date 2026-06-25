@@ -87,6 +87,26 @@ func TestSyncRequiresEnvironmentConfig(t *testing.T) {
 }
 
 func TestSyncQueriesUpdatesAndRunsDaed(t *testing.T) {
+	result, requests := runSyncWithRunResponse(t, true)
+
+	if !result.Changed || result.RoutingID != "r1" || result.RoutingName != "default" {
+		t.Fatalf("result mismatch: %+v", result)
+	}
+	assertStrings(t, requests, []string{"Routings", "UpdateRouting", "Run"})
+}
+
+func TestSyncAcceptsNumericRunResponse(t *testing.T) {
+	result, requests := runSyncWithRunResponse(t, 1)
+
+	if !result.Changed || result.RoutingID != "r1" || result.RoutingName != "default" {
+		t.Fatalf("result mismatch: %+v", result)
+	}
+	assertStrings(t, requests, []string{"Routings", "UpdateRouting", "Run"})
+}
+
+func runSyncWithRunResponse(t *testing.T, runResponse any) (*Result, []string) {
+	t.Helper()
+
 	requests := make([]string, 0)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if got := r.Header.Get("Authorization"); got != "Bearer token" {
@@ -112,7 +132,7 @@ func TestSyncQueriesUpdatesAndRunsDaed(t *testing.T) {
 			}
 			writeTestJSON(t, w, map[string]any{"data": map[string]any{"updateRouting": map[string]any{"id": "r1"}}})
 		case "Run":
-			writeTestJSON(t, w, map[string]any{"data": map[string]any{"run": true}})
+			writeTestJSON(t, w, map[string]any{"data": map[string]any{"run": runResponse}})
 		default:
 			t.Fatalf("unexpected operation: %s", payload.OperationName)
 		}
@@ -126,10 +146,7 @@ func TestSyncQueriesUpdatesAndRunsDaed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Sync returned error: %v", err)
 	}
-	if !result.Changed || result.RoutingID != "r1" || result.RoutingName != "default" {
-		t.Fatalf("result mismatch: %+v", result)
-	}
-	assertStrings(t, requests, []string{"Routings", "UpdateRouting", "Run"})
+	return result, requests
 }
 
 func assertStrings(t *testing.T, got []string, want []string) {
