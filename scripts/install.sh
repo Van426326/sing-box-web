@@ -167,7 +167,8 @@ EOF
   chmod 0644 "$SERVICE_FILE"
 
   systemctl daemon-reload
-  systemctl enable --now kt-proxy
+  systemctl enable kt-proxy
+  systemctl restart kt-proxy
 }
 
 print_summary() {

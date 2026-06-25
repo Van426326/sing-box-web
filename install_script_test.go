@@ -32,7 +32,8 @@ func TestInstallScriptDocumentsAndImplementsUbuntuDeployment(t *testing.T) {
 		"/usr/local/bin/kt-proxy",
 		"github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz",
 		"systemctl daemon-reload",
-		"systemctl enable --now kt-proxy",
+		"systemctl enable kt-proxy",
+		"systemctl restart kt-proxy",
 	}
 	for _, want := range scriptChecks {
 		if !strings.Contains(script, want) {
