@@ -131,8 +131,10 @@ write_env_file() {
 
   prompt_value KT_PROXY_ADDR "kt-proxy 监听地址" ":8090"
   prompt_value SING_BOX_CONFIG_PATH "sing-box 配置文件路径" "/etc/sing-box/config.json"
-  prompt_value DAED_GRAPHQL_URL "Daed GraphQL URL（可留空，页面会提示未配置）" ""
-  prompt_secret DAED_AUTHORIZATION "Daed Authorization（可留空，输入不会显示）"
+  prompt_value KTDAT_REPO "kt-dat GitHub 仓库" "Van426326/kt-dat"
+  prompt_value KTDAT_BRANCH "kt-dat 分支" "main"
+  prompt_value KTDAT_PATH "kt-dat CIDR 文件路径" "kt.txt"
+  prompt_secret KTDAT_TOKEN "GitHub Token（可留空，输入不会显示）"
 
   umask 077
   {
@@ -141,8 +143,10 @@ write_env_file() {
     printf 'SING_BOX_EXAMPLE_PATH=%s\n' "$(quote_env "$EXAMPLE_FILE")"
     printf 'SING_BOX_BIN=%s\n' "$(quote_env "${SING_BOX_BIN:-sing-box}")"
     printf 'SYSTEMCTL_BIN=%s\n' "$(quote_env "${SYSTEMCTL_BIN:-systemctl}")"
-    printf 'DAED_GRAPHQL_URL=%s\n' "$(quote_env "$DAED_GRAPHQL_URL")"
-    printf 'DAED_AUTHORIZATION=%s\n' "$(quote_env "$DAED_AUTHORIZATION")"
+    printf 'KTDAT_REPO=%s\n' "$(quote_env "$KTDAT_REPO")"
+    printf 'KTDAT_BRANCH=%s\n' "$(quote_env "$KTDAT_BRANCH")"
+    printf 'KTDAT_PATH=%s\n' "$(quote_env "$KTDAT_PATH")"
+    printf 'KTDAT_TOKEN=%s\n' "$(quote_env "$KTDAT_TOKEN")"
   } > "$ENV_FILE"
   chmod 0600 "$ENV_FILE"
 }

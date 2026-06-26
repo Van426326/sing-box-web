@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"kt-proxy/internal/configmgr"
-	"kt-proxy/internal/daedsync"
+	"kt-proxy/internal/ktdatsync"
 	"kt-proxy/internal/server"
 )
 
@@ -29,11 +29,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("static fs: %v", err)
 	}
-	daed := daedsync.New(daedsync.Config{
-		GraphQLURL:    os.Getenv("DAED_GRAPHQL_URL"),
-		Authorization: os.Getenv("DAED_AUTHORIZATION"),
+	ktdat := ktdatsync.New(ktdatsync.Config{
+		Repo:   env("KTDAT_REPO", "Van426326/kt-dat"),
+		Branch: env("KTDAT_BRANCH", "main"),
+		Path:   env("KTDAT_PATH", "kt.txt"),
+		Token:  os.Getenv("KTDAT_TOKEN"),
 	}, manager, nil)
-	handler := server.New(manager, staticFS, daed)
+	handler := server.New(manager, staticFS, ktdat)
 	log.Printf("kt-proxy listening on %s", addr)
 	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatal(err)

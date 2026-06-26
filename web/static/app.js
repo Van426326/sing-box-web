@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", () => switchTab(button.dataset.tab));
   });
   el("reloadBtn").addEventListener("click", loadConfig);
-  el("syncDaedBtn").addEventListener("click", syncDaed);
+  el("syncKTDatBtn").addEventListener("click", syncKTDat);
   el("saveBtn").addEventListener("click", saveConfig);
   el("closeDialogBtn").addEventListener("click", closeDialog);
   el("cancelDialogBtn").addEventListener("click", closeDialog);
@@ -73,21 +73,22 @@ async function saveConfig() {
   }
 }
 
-async function syncDaed() {
+async function syncKTDat() {
   if (state.dirty) {
-    showAlert("当前配置有未保存修改，请先点击“检查并保存”后再同步到 Daed。", "error");
+    showAlert("当前配置有未保存修改，请先点击“检查并保存”后再同步到 kt-dat。", "error");
     return;
   }
-  showAlert("正在同步到 Daed...", "");
+  showAlert("正在同步到 kt-dat...", "");
   try {
-    const response = await fetch("/api/daed/sync-route-rules", {method: "POST"});
+    const response = await fetch("/api/ktdat/sync", {method: "POST"});
     const body = await response.json();
     if (!response.ok) {
-      throw new Error(body.error || "同步到 Daed 失败");
+      throw new Error(body.error || "同步到 kt-dat 失败");
     }
-    const added = Array.isArray(body.added) && body.added.length > 0 ? `\n新增 IP:\n${body.added.join("\n")}` : "";
-    const routing = body.routingName ? `\nRouting: ${body.routingName}` : "";
-    showAlert(`${body.message || "同步完成"}${routing}${added}`, body.changed ? "ok" : "");
+    const target = body.target ? `\n目标：${body.target}` : "";
+    const count = Number.isFinite(body.cidrCount) ? `\nCIDR 数量：${body.cidrCount}` : "";
+    const commit = body.commitUrl ? `\nCommit：${body.commitUrl}` : "";
+    showAlert(`${body.message || "同步完成"}${target}${count}${commit}`, body.changed ? "ok" : "");
   } catch (error) {
     showAlert(error.message, "error");
   }

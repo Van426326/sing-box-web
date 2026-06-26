@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"kt-proxy/internal/configmgr"
-	"kt-proxy/internal/daedsync"
+	"kt-proxy/internal/ktdatsync"
 )
 
 type ConfigService interface {
@@ -16,11 +16,11 @@ type ConfigService interface {
 	Save(ctx context.Context, raw json.RawMessage) (*configmgr.SaveResult, error)
 }
 
-type DaedSyncService interface {
-	Sync(ctx context.Context) (*daedsync.Result, error)
+type KTDatSyncService interface {
+	Sync(ctx context.Context) (*ktdatsync.Result, error)
 }
 
-func New(service ConfigService, staticFS fs.FS, daed DaedSyncService) http.Handler {
+func New(service ConfigService, staticFS fs.FS, ktdat KTDatSyncService) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
 		result, err := service.Load(r.Context())
@@ -55,14 +55,14 @@ func New(service ConfigService, staticFS fs.FS, daed DaedSyncService) http.Handl
 		}
 		writeJSON(w, http.StatusOK, result)
 	})
-	mux.HandleFunc("POST /api/daed/sync-route-rules", func(w http.ResponseWriter, r *http.Request) {
-		if daed == nil {
-			writeError(w, http.StatusBadRequest, daedsync.ErrMissingConfig)
+	mux.HandleFunc("POST /api/ktdat/sync", func(w http.ResponseWriter, r *http.Request) {
+		if ktdat == nil {
+			writeError(w, http.StatusBadRequest, ktdatsync.ErrMissingConfig)
 			return
 		}
-		result, err := daed.Sync(r.Context())
+		result, err := ktdat.Sync(r.Context())
 		if err != nil {
-			writeJSON(w, daedStatus(err), map[string]any{
+			writeJSON(w, ktDatStatus(err), map[string]any{
 				"error":  err.Error(),
 				"result": result,
 			})
@@ -74,16 +74,14 @@ func New(service ConfigService, staticFS fs.FS, daed DaedSyncService) http.Handl
 	return mux
 }
 
-func daedStatus(err error) int {
-	if errors.Is(err, daedsync.ErrMissingConfig) {
+func ktDatStatus(err error) int {
+	if errors.Is(err, ktdatsync.ErrMissingConfig) || errors.Is(err, ktdatsync.ErrInvalidRepo) {
 		return http.StatusBadRequest
 	}
-	if errors.Is(err, daedsync.ErrNoSelectedRouting) ||
-		errors.Is(err, daedsync.ErrMarkerNotFound) ||
-		errors.Is(err, daedsync.ErrTargetBlockNotFound) {
-		return http.StatusUnprocessableEntity
+	if errors.Is(err, ktdatsync.ErrConflict) {
+		return http.StatusConflict
 	}
-	if errors.Is(err, daedsync.ErrGraphQL) {
+	if errors.Is(err, ktdatsync.ErrGitHub) {
 		return http.StatusBadGateway
 	}
 	return http.StatusInternalServerError

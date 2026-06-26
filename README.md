@@ -24,21 +24,25 @@ During interactive install it asks for:
 
 - `KT_PROXY_ADDR`, default `:8090`
 - `SING_BOX_CONFIG_PATH`, default `/etc/sing-box/config.json`
-- `DAED_GRAPHQL_URL`, optional
-- `DAED_AUTHORIZATION`, optional and hidden while typing
+- `KTDAT_REPO`, default `Van426326/kt-dat`
+- `KTDAT_BRANCH`, default `main`
+- `KTDAT_PATH`, default `kt.txt`
+- `KTDAT_TOKEN`, optional at install time and hidden while typing
 
 For non-interactive install, export the values first and preserve them through `sudo -E bash`:
 
 ```bash
 export KT_PROXY_ADDR=":8090"
 export SING_BOX_CONFIG_PATH="/etc/sing-box/config.json"
-export DAED_GRAPHQL_URL="http://127.0.0.1:2023/graphql"
-export DAED_AUTHORIZATION="Bearer xxx"
+export KTDAT_REPO="Van426326/kt-dat"
+export KTDAT_BRANCH="main"
+export KTDAT_PATH="kt.txt"
+export KTDAT_TOKEN="<github-token>"
 
 curl -fsSL https://raw.githubusercontent.com/Van426326/sing-box-web/main/scripts/install.sh | sudo -E bash
 ```
 
-If `DAED_GRAPHQL_URL` or `DAED_AUTHORIZATION` is empty, the Daed sync button remains available but the page will show the missing configuration error returned by the API.
+`KTDAT_TOKEN` should be a GitHub fine-grained personal access token scoped only to `Van426326/kt-dat` with repository contents read/write permission. If `KTDAT_TOKEN` is empty, the kt-dat sync button remains available but the page will show the missing configuration error returned by the API.
 
 Common service commands:
 
@@ -91,14 +95,16 @@ The process needs permission to:
 - Run `sing-box check -c <temp-file>`
 - Run `systemctl reload sing-box`
 
-## Daed Sync
+## kt-dat Sync
 
-Set these variables to enable the "同步到 Daed" button:
+Set these variables to enable the "同步到 kt-dat" button:
 
-- `DAED_GRAPHQL_URL`
-- `DAED_AUTHORIZATION`
+- `KTDAT_REPO`, default `Van426326/kt-dat`
+- `KTDAT_BRANCH`, default `main`
+- `KTDAT_PATH`, default `kt.txt`
+- `KTDAT_TOKEN`
 
-The sync reads sing-box `route.rules[*].ip_cidr` and updates the selected Daed routing block marked by `# 家 & kt` and `dip(...) -> singbox`.
+The sync reads saved sing-box `route.rules[*].ip_cidr`, writes one CIDR per line to `kt.txt`, and commits it through the GitHub Contents API. The `kt-dat` repository can then build and publish the dat file through its own Actions workflow.
 
 ## Example systemd unit
 

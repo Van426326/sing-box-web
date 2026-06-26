@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"kt-proxy/internal/configmgr"
-	"kt-proxy/internal/daedsync"
+	"kt-proxy/internal/ktdatsync"
 )
 
 type fakeConfigService struct {
@@ -33,13 +33,13 @@ func (f *fakeConfigService) Save(ctx context.Context, raw json.RawMessage) (*con
 	return f.saveResult, f.saveErr
 }
 
-type fakeDaedSyncService struct {
-	result *daedsync.Result
+type fakeKTDatSyncService struct {
+	result *ktdatsync.Result
 	err    error
 	calls  int
 }
 
-func (f *fakeDaedSyncService) Sync(ctx context.Context) (*daedsync.Result, error) {
+func (f *fakeKTDatSyncService) Sync(ctx context.Context) (*ktdatsync.Result, error) {
 	f.calls++
 	return f.result, f.err
 }
@@ -121,46 +121,47 @@ func TestLoadErrorReturns500(t *testing.T) {
 	}
 }
 
-func TestDaedSyncReturnsResult(t *testing.T) {
-	daed := &fakeDaedSyncService{result: &daedsync.Result{
-		RoutingID:   "r1",
-		RoutingName: "default",
-		Changed:     true,
-		Added:       []string{"10.0.0.0/24"},
-		Message:     "已同步 1 个 IP 到 Daed",
+func TestKTDatSyncReturnsResult(t *testing.T) {
+	syncer := &fakeKTDatSyncService{result: &ktdatsync.Result{
+		Target:    "Van426326/kt-dat:main:kt.txt",
+		Changed:   true,
+		CIDRCount: 1,
+		CommitURL: "https://github.com/Van426326/kt-dat/commit/abc",
+		Message:   "已同步 1 个 IP 到 kt-dat",
 	}}
-	handler := New(&fakeConfigService{}, testStaticFS(), daed)
+	handler := New(&fakeConfigService{}, testStaticFS(), syncer)
 
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/daed/sync-route-rules", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/ktdat/sync", nil)
 	handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
 	}
-	if daed.calls != 1 {
-		t.Fatalf("calls = %d, want 1", daed.calls)
+	if syncer.calls != 1 {
+		t.Fatalf("calls = %d, want 1", syncer.calls)
 	}
-	if !strings.Contains(rec.Body.String(), `"routingName":"default"`) {
+	if !strings.Contains(rec.Body.String(), `"commitUrl":"https://github.com/Van426326/kt-dat/commit/abc"`) {
 		t.Fatalf("body missing result: %s", rec.Body.String())
 	}
 }
 
-func TestDaedSyncMapsErrors(t *testing.T) {
+func TestKTDatSyncMapsErrors(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
 		want int
 	}{
-		{name: "missing config", err: daedsync.ErrMissingConfig, want: http.StatusBadRequest},
-		{name: "missing marker", err: daedsync.ErrMarkerNotFound, want: http.StatusUnprocessableEntity},
-		{name: "graphql", err: daedsync.ErrGraphQL, want: http.StatusBadGateway},
+		{name: "missing config", err: ktdatsync.ErrMissingConfig, want: http.StatusBadRequest},
+		{name: "invalid repo", err: ktdatsync.ErrInvalidRepo, want: http.StatusBadRequest},
+		{name: "github", err: ktdatsync.ErrGitHub, want: http.StatusBadGateway},
+		{name: "conflict", err: ktdatsync.ErrConflict, want: http.StatusConflict},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := New(&fakeConfigService{}, testStaticFS(), &fakeDaedSyncService{err: tt.err})
+			handler := New(&fakeConfigService{}, testStaticFS(), &fakeKTDatSyncService{err: tt.err})
 			rec := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/api/daed/sync-route-rules", nil)
+			req := httptest.NewRequest(http.MethodPost, "/api/ktdat/sync", nil)
 			handler.ServeHTTP(rec, req)
 			if rec.Code != tt.want {
 				t.Fatalf("status = %d, want %d; body=%s", rec.Code, tt.want, rec.Body.String())
@@ -169,10 +170,10 @@ func TestDaedSyncMapsErrors(t *testing.T) {
 	}
 }
 
-func TestDaedSyncWithoutServiceReturns400(t *testing.T) {
+func TestKTDatSyncWithoutServiceReturns400(t *testing.T) {
 	handler := New(&fakeConfigService{}, testStaticFS(), nil)
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/daed/sync-route-rules", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/ktdat/sync", nil)
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400; body=%s", rec.Code, rec.Body.String())
