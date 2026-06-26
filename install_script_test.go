@@ -27,6 +27,8 @@ func TestInstallScriptDocumentsAndImplementsUbuntuDeployment(t *testing.T) {
 		"KTDAT_BRANCH",
 		"KTDAT_PATH",
 		"KTDAT_TOKEN",
+		"load_existing_env",
+		"CURRENT_KTDAT_TOKEN",
 		"read -r -s",
 		"/dev/tty",
 		"/etc/kt-proxy/kt-proxy.env",

@@ -20,6 +20,8 @@ curl -fsSL https://raw.githubusercontent.com/Van426326/sing-box-web/main/scripts
 
 The installer builds the binary from the GitHub source, installs it to `/usr/local/bin/kt-proxy`, writes `/etc/kt-proxy/kt-proxy.env`, installs `/etc/systemd/system/kt-proxy.service`, and starts the `kt-proxy` service.
 
+When rerun for updates, the installer reads existing values from `/etc/kt-proxy/kt-proxy.env` and uses them as prompt defaults. Press Enter at the hidden `KTDAT_TOKEN` prompt to keep the existing token.
+
 During interactive install it asks for:
 
 - `KT_PROXY_ADDR`, default `:8090`

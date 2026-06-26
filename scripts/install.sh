@@ -70,9 +70,27 @@ prompt_value() {
   printf -v "$var_name" '%s' "$input"
 }
 
+load_existing_env() {
+  if [ ! -r "$ENV_FILE" ]; then
+    return
+  fi
+
+  local key value
+  while IFS='=' read -r key value; do
+    case "$key" in
+      KT_PROXY_ADDR|SING_BOX_CONFIG_PATH|KTDAT_REPO|KTDAT_BRANCH|KTDAT_PATH|KTDAT_TOKEN)
+        value="${value#\'}"
+        value="${value%\'}"
+        printf -v "CURRENT_$key" '%s' "$value"
+        ;;
+    esac
+  done < "$ENV_FILE"
+}
+
 prompt_secret() {
   local var_name="$1"
   local prompt="$2"
+  local default_value="${3:-}"
   local current_value="${!var_name:-}"
   local input=""
 
@@ -87,6 +105,9 @@ prompt_secret() {
     printf '\n' > /dev/tty
   fi
 
+  if [ -z "$input" ]; then
+    input="$default_value"
+  fi
   printf -v "$var_name" '%s' "$input"
 }
 
@@ -128,13 +149,14 @@ download_and_build() {
 write_env_file() {
   log "写入环境变量配置"
   install -d -m 0755 "$CONFIG_DIR"
+  load_existing_env
 
-  prompt_value KT_PROXY_ADDR "kt-proxy 监听地址" ":8090"
-  prompt_value SING_BOX_CONFIG_PATH "sing-box 配置文件路径" "/etc/sing-box/config.json"
-  prompt_value KTDAT_REPO "kt-dat GitHub 仓库" "Van426326/kt-dat"
-  prompt_value KTDAT_BRANCH "kt-dat 分支" "main"
-  prompt_value KTDAT_PATH "kt-dat CIDR 文件路径" "kt.txt"
-  prompt_secret KTDAT_TOKEN "GitHub Token（可留空，输入不会显示）"
+  prompt_value KT_PROXY_ADDR "kt-proxy 监听地址" "${CURRENT_KT_PROXY_ADDR:-:8090}"
+  prompt_value SING_BOX_CONFIG_PATH "sing-box 配置文件路径" "${CURRENT_SING_BOX_CONFIG_PATH:-/etc/sing-box/config.json}"
+  prompt_value KTDAT_REPO "kt-dat GitHub 仓库" "${CURRENT_KTDAT_REPO:-Van426326/kt-dat}"
+  prompt_value KTDAT_BRANCH "kt-dat 分支" "${CURRENT_KTDAT_BRANCH:-main}"
+  prompt_value KTDAT_PATH "kt-dat CIDR 文件路径" "${CURRENT_KTDAT_PATH:-kt.txt}"
+  prompt_secret KTDAT_TOKEN "GitHub Token（可留空，输入不会显示；直接回车保留旧值）" "${CURRENT_KTDAT_TOKEN:-}"
 
   umask 077
   {
