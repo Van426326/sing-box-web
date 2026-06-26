@@ -107,9 +107,9 @@ func (s *Service) Sync(ctx context.Context) (*Result, error) {
 		if err != nil {
 			return nil, err
 		}
-		merged = MergeCIDRs(ParseKTText(remoteContent), cidrs)
-		content := RenderKTText(merged)
-		if remoteContent == content {
+		existing := ParseKTText(remoteContent)
+		merged = MergeCIDRs(existing, cidrs)
+		if len(merged) == len(existing) {
 			result := &Result{
 				Target:    target,
 				CIDRCount: len(merged),

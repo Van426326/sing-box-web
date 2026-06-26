@@ -96,6 +96,29 @@ func TestSyncNoopsWhenRemoteContentMatches(t *testing.T) {
 	}
 }
 
+func TestSyncNoopsWhenRemoteOnlyDiffersByTrailingNewline(t *testing.T) {
+	server := newGitHubServer(t, githubScenario{
+		existingContent: "10.0.0.0/24",
+		existingSHA:     "abc123",
+	})
+	defer server.Close()
+
+	service := newTestService(server, `{"route":{"rules":[{"ip_cidr":"10.0.0.0/24"}]}}`)
+	result, err := service.Sync(context.Background())
+	if err != nil {
+		t.Fatalf("Sync returned error: %v", err)
+	}
+	if result.Changed {
+		t.Fatalf("Changed = true, want false")
+	}
+	if result.CIDRCount != 1 {
+		t.Fatalf("CIDRCount = %d, want 1", result.CIDRCount)
+	}
+	if server.putCalls != 0 {
+		t.Fatalf("putCalls = %d, want 0", server.putCalls)
+	}
+}
+
 func TestSyncUpdatesExistingFileWhenContentDiffers(t *testing.T) {
 	server := newGitHubServer(t, githubScenario{
 		existingContent: "10.0.0.0/24\n",
