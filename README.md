@@ -104,7 +104,7 @@ Set these variables to enable the "同步到 kt-dat" button:
 - `KTDAT_PATH`, default `kt.txt`
 - `KTDAT_TOKEN`
 
-The sync reads saved sing-box `route.rules[*].ip_cidr`, writes one CIDR per line to `kt.txt`, and commits it through the GitHub Contents API. The `kt-dat` repository can then build and publish the dat file through its own Actions workflow.
+The sync reads saved sing-box `route.rules[*].ip_cidr`, reads the existing remote `kt.txt`, keeps existing entries, appends only new CIDR values, and commits the merged one-CIDR-per-line file through the GitHub Contents API. The `kt-dat` repository can then build and publish the dat file through its own Actions workflow.
 
 ## Example systemd unit
 

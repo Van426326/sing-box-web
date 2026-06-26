@@ -49,6 +49,14 @@ func TestRenderKTTextWritesOneCIDRPerLine(t *testing.T) {
 	}
 }
 
+func TestMergeCIDRsKeepsExistingOrderAndAppendsNewValues(t *testing.T) {
+	got := MergeCIDRs(
+		ParseKTText("10.0.0.0/24\n172.16.0.0/16\n\n"),
+		[]string{"172.16.0.0/16", "192.168.1.1/32"},
+	)
+	assertStrings(t, got, []string{"10.0.0.0/24", "172.16.0.0/16", "192.168.1.1/32"})
+}
+
 func TestSyncRequiresGitHubConfig(t *testing.T) {
 	service := New(Config{}, fakeLoader{}, http.DefaultClient)
 	_, err := service.Sync(context.Background())
@@ -112,6 +120,28 @@ func TestSyncUpdatesExistingFileWhenContentDiffers(t *testing.T) {
 		t.Fatalf("put sha = %q, want existing sha", server.lastPut.SHA)
 	}
 	if decoded := mustDecodeBase64(t, server.lastPut.Content); decoded != "10.0.0.0/24\n192.168.1.1/32\n" {
+		t.Fatalf("put content = %q", decoded)
+	}
+}
+
+func TestSyncAppendsOnlyNewCIDRsToExistingRemoteContent(t *testing.T) {
+	server := newGitHubServer(t, githubScenario{
+		existingContent: "10.0.0.0/24\n172.16.0.0/16\n",
+		existingSHA:     "abc123",
+		commitSHA:       "commit456",
+		commitURL:       "https://github.com/Van426326/kt-dat/commit/commit456",
+	})
+	defer server.Close()
+
+	service := newTestService(server, `{"route":{"rules":[{"ip_cidr":["172.16.0.0/16","192.168.1.1/32"]}]}}`)
+	result, err := service.Sync(context.Background())
+	if err != nil {
+		t.Fatalf("Sync returned error: %v", err)
+	}
+	if !result.Changed || result.CIDRCount != 3 {
+		t.Fatalf("result mismatch: %+v", result)
+	}
+	if decoded := mustDecodeBase64(t, server.lastPut.Content); decoded != "10.0.0.0/24\n172.16.0.0/16\n192.168.1.1/32\n" {
 		t.Fatalf("put content = %q", decoded)
 	}
 }

@@ -95,37 +95,43 @@ func (s *Service) Sync(ctx context.Context) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	content := RenderKTText(cidrs)
 	target := fmt.Sprintf("%s:%s:%s", s.config.Repo, s.config.Branch, s.config.Path)
-	result := &Result{
-		Target:    target,
-		CIDRCount: len(cidrs),
-	}
 
 	remote, exists, err := s.getContent(ctx, owner, repo)
 	if err != nil {
 		return nil, err
 	}
+	merged := cidrs
 	if exists {
 		remoteContent, err := decodeContent(remote)
 		if err != nil {
 			return nil, err
 		}
+		merged = MergeCIDRs(ParseKTText(remoteContent), cidrs)
+		content := RenderKTText(merged)
 		if remoteContent == content {
+			result := &Result{
+				Target:    target,
+				CIDRCount: len(merged),
+			}
 			result.Message = "kt-dat 已是最新，无需提交"
 			return result, nil
 		}
 	}
 
+	content := RenderKTText(merged)
 	commit, err := s.putContent(ctx, owner, repo, content, remote.SHA)
 	if err != nil {
 		return nil, err
 	}
-	result.Changed = true
-	result.CommitSHA = commit.Commit.SHA
-	result.CommitURL = commit.Commit.HTMLURL
-	result.Message = fmt.Sprintf("已同步 %d 个 IP 到 kt-dat", len(cidrs))
-	return result, nil
+	return &Result{
+		Target:    target,
+		Changed:   true,
+		CIDRCount: len(merged),
+		CommitSHA: commit.Commit.SHA,
+		CommitURL: commit.Commit.HTMLURL,
+		Message:   fmt.Sprintf("已同步 %d 个 IP 到 kt-dat", len(merged)),
+	}, nil
 }
 
 func ExtractIPCidrs(raw json.RawMessage) ([]string, error) {
@@ -158,6 +164,27 @@ func RenderKTText(cidrs []string) string {
 		return ""
 	}
 	return strings.Join(cidrs, "\n") + "\n"
+}
+
+func ParseKTText(text string) []string {
+	seen := make(map[string]struct{})
+	result := make([]string, 0)
+	for _, line := range strings.Split(text, "\n") {
+		result = appendUnique(result, seen, line)
+	}
+	return result
+}
+
+func MergeCIDRs(existing []string, incoming []string) []string {
+	seen := make(map[string]struct{}, len(existing)+len(incoming))
+	result := make([]string, 0, len(existing)+len(incoming))
+	for _, item := range existing {
+		result = appendUnique(result, seen, item)
+	}
+	for _, item := range incoming {
+		result = appendUnique(result, seen, item)
+	}
+	return result
 }
 
 func (s *Service) getContent(ctx context.Context, owner string, repo string) (contentResponse, bool, error) {
